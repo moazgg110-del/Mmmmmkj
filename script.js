@@ -1,50 +1,81 @@
-// Sample Apps Data (يمكنك إضافة أو تعديل التطبيقات بسهولة من هنا)
-const appsData = [
-  {
-    id: 1,
-    title: "آلة حاسبة متطورة",
-    category: "أدوات",
-    desc: "آلة حاسبة ذكية بتصميم عصري لحساب المعادلات بسهولة.",
-    icon: "https://cdn-icons-png.flaticon.com/512/3405/3405822.png",
-    link: "https://moaz-calc.netlify.app"
-  },
-  {
-    id: 2,
-    title: "لعبة منصات المغامرات",
-    category: "ألعاب",
-    desc: "لعبة خفيفة ممتعة بمستويات متعددة وتحديات حماسية.",
-    icon: "https://cdn-icons-png.flaticon.com/512/3093/3093113.png",
-    link: "https://moaz-game.netlify.app"
-  },
-  {
-    id: 3,
-    title: "تطبيق هزّرها",
-    category: "تسلية",
-    desc: "تطبيق النكات والضحك اليومي بتصميم جذاب وخفيف.",
-    icon: "invalid-url-test.png", // تجربة إظهار الأيقونة البديلة التلقائية
-    link: "https://hazarha.netlify.app"
-  },
-  {
-    id: 4,
-    title: "منظم المهام اليومية",
-    category: "إنتاجية",
-    desc: "سجل مهامك وأهدافك اليومية واحفظها مباشرة في جهازك.",
-    icon: "https://cdn-icons-png.flaticon.com/512/2098/2098402.png",
-    link: "https://moaz-todo.netlify.app"
-  }
-];
+// --- إعدادات Supabase ---
+const SUPABASE_URL = "YOUR_SUPABASE_URL_HERE";
+const SUPABASE_KEY = "YOUR_SUPABASE_ANON_KEY_HERE";
 
-// Favorites management using localStorage
+let supabaseClient = null;
+if (SUPABASE_URL !== "YOUR_SUPABASE_URL_HERE" && typeof supabase !== 'undefined') {
+  supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+}
+
+// قائمة التطبيقات فارغة بالكامل كودياً وتنتظر جلب بيانات Supabase
+let appsData = [];
 let favorites = JSON.parse(localStorage.getItem('moaz_store_favs')) || [];
 let currentTab = 'all';
 
 document.addEventListener('DOMContentLoaded', () => {
-  renderApps();
+  fetchAppsFromSupabase();
   updateFavCount();
 
-  // Search input listener
   document.getElementById('searchInput').addEventListener('input', renderApps);
 });
+
+// جلب التطبيقات من قاعدة بيانات Supabase
+async function fetchAppsFromSupabase() {
+  const loadingState = document.getElementById('loadingState');
+  const emptyState = document.getElementById('emptyState');
+  const emptyText = document.getElementById('emptyText');
+
+  loadingState.style.display = 'block';
+  emptyState.style.display = 'none';
+
+  if (!supabaseClient) {
+    loadingState.style.display = 'none';
+    emptyState.style.display = 'block';
+    emptyText.textContent = "يرجى وضع رابط ومفتاح Supabase الخاص بك في ملف script.js ليتم عرض تطبيقاتك!";
+    return;
+  }
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('apps')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    loadingState.style.display = 'none';
+
+    if (error) {
+      console.error('Supabase Error:', error);
+      emptyState.style.display = 'block';
+      emptyText.textContent = "حدث خطأ أثناء الاتصال بـ Supabase!";
+      return;
+    }
+
+    appsData = data || [];
+    document.getElementById('totalAppsCount').textContent = appsData.length;
+    renderApps();
+
+  } catch (err) {
+    loadingState.style.display = 'none';
+    console.error(err);
+    emptyState.style.display = 'block';
+    emptyText.textContent = "تعذر الاتصال بقاعدة البيانات!";
+  }
+}
+
+// اختيار أيقونة احتياطية ذكية حسب الفئة إذا كان رابط الصورة مكسوراً أو فارغاً
+function getSmartFallbackIcon(category) {
+  const cat = (category || '').toLowerCase();
+  if (cat.includes('لعب') || cat.includes('game')) {
+    return 'fa-gamepad';
+  } else if (cat.includes('أدوا') || cat.includes('tool')) {
+    return 'fa-wrench';
+  } else if (cat.includes('تسل') || cat.includes('fun')) {
+    return 'fa-face-smile';
+  } else if (cat.includes('فيديو') || cat.includes('ميديا')) {
+    return 'fa-play-circle';
+  }
+  return 'fa-mobile-screen-button'; // أيقونة تطبيق عامة
+}
 
 function switchTab(tab) {
   currentTab = tab;
@@ -54,7 +85,9 @@ function switchTab(tab) {
 }
 
 function updateFavCount() {
-  document.getElementById('favCount').textContent = favorites.length;
+  const count = favorites.length;
+  document.getElementById('favCount').textContent = count;
+  document.getElementById('favAppsCount').textContent = count;
 }
 
 function toggleFavorite(id) {
@@ -97,18 +130,32 @@ function showToast(msg) {
 function renderApps() {
   const grid = document.getElementById('appsGrid');
   const emptyState = document.getElementById('emptyState');
+  const emptyText = document.getElementById('emptyText');
   const searchQuery = document.getElementById('searchInput').value.toLowerCase().trim();
+  const selectedCat = document.getElementById('categorySelect').value;
 
   grid.innerHTML = '';
 
   let filteredApps = appsData.filter(app => {
-    const matchesSearch = app.title.toLowerCase().includes(searchQuery) || app.desc.toLowerCase().includes(searchQuery);
+    const titleMatch = app.title ? app.title.toLowerCase().includes(searchQuery) : false;
+    const descMatch = app.desc ? app.desc.toLowerCase().includes(searchQuery) : false;
+    const matchesSearch = titleMatch || descMatch;
+    
     const matchesTab = (currentTab === 'all') || (currentTab === 'fav' && favorites.includes(app.id));
-    return matchesSearch && matchesTab;
+    const matchesCat = (selectedCat === 'all') || (app.category === selectedCat);
+
+    return matchesSearch && matchesTab && matchesCat;
   });
 
   if (filteredApps.length === 0) {
     emptyState.style.display = 'block';
+    if (currentTab === 'fav') {
+      emptyText.textContent = "لا توجد تطبيقات في المفضلة بعد!";
+    } else if (appsData.length === 0) {
+      emptyText.textContent = "لا توجد تطبيقات متوفرة حالياً في متجرك!";
+    } else {
+      emptyText.textContent = "لا توجد نتائج تطابق بحثك أو الفئة المحددة!";
+    }
     return;
   } else {
     emptyState.style.display = 'none';
@@ -116,30 +163,31 @@ function renderApps() {
 
   filteredApps.forEach(app => {
     const isFav = favorites.includes(app.id);
+    const fallbackIconClass = getSmartFallbackIcon(app.category);
 
     const card = document.createElement('div');
     card.className = 'app-card';
     card.innerHTML = `
       <div class="app-header">
         <div class="app-icon-wrapper">
-          <img src="${app.icon}" alt="${app.title}" class="app-icon" 
+          <img src="${app.icon || ''}" alt="${app.title || ''}" class="app-icon" 
                onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='block';">
-          <i class="fa-solid fa-cubes fallback-icon" style="display: none;"></i>
+          <i class="fa-solid ${fallbackIconClass} fallback-icon" style="display: none;"></i>
         </div>
         <div class="app-info">
-          <div class="app-title">${app.title}</div>
-          <div class="app-desc">${app.desc}</div>
-          <span class="app-badge">${app.category}</span>
+          <div class="app-title">${app.title || 'تطبيق بدون عنوان'}</div>
+          <div class="app-desc">${app.desc || ''}</div>
+          ${app.category ? `<span class="app-badge">${app.category}</span>` : ''}
         </div>
       </div>
       <div class="app-actions">
-        <a href="${app.link}" target="_blank" class="btn-download">
+        <a href="${app.link || '#'}" target="_blank" class="btn-download">
           <i class="fa-solid fa-download"></i> تحميل
         </a>
         <button class="btn-icon btn-fav ${isFav ? 'active' : ''}" onclick="toggleFavorite(${app.id})" title="المفضلة">
           <i class="${isFav ? 'fa-solid' : 'fa-regular'} fa-heart"></i>
         </button>
-        <button class="btn-icon" onclick="shareApp('${app.title}', '${app.link}')" title="مشاركة">
+        <button class="btn-icon" onclick="shareApp('${app.title || ''}', '${app.link || ''}')" title="مشاركة">
           <i class="fa-solid fa-share-nodes"></i>
         </button>
       </div>
