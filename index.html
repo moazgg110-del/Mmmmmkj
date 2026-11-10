@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>معاذ ستور | Moaz Store</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Glowing Animated Background Spheres -->
+  <div class="bg-animation">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
+
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <i class="fa-solid fa-store"></i>
+        <h1>معاذ ستور</h1>
+      </div>
+      <p class="subtitle">متجرك المفضل لأفضل تطبيقات وألعاب الويب</p>
+    </header>
+
+    <!-- Controls: Search & Tabs -->
+    <div class="controls">
+      <div class="search-box">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input type="text" id="searchInput" placeholder="ابحث عن تطبيق أو لعبة...">
+      </div>
+
+      <div class="tabs">
+        <button class="tab-btn active" id="tabAll" onclick="switchTab('all')">
+          <i class="fa-solid fa-border-all"></i> الكل
+        </button>
+        <button class="tab-btn" id="tabFav" onclick="switchTab('fav')">
+          <i class="fa-solid fa-heart"></i> المفضلة (<span id="favCount">0</span>)
+        </button>
+      </div>
+    </div>
+
+    <!-- App Cards Grid -->
+    <main class="apps-grid" id="appsGrid">
+      <!-- Generated Dynamically via JS -->
+    </main>
+
+    <!-- Empty State Message -->
+    <div class="empty-state" id="emptyState" style="display: none;">
+      <i class="fa-solid fa-ghost"></i>
+      <p>لا توجد تطبيقات مطابقة للبحث أو في المفضلة!</p>
+    </div>
+
+    <!-- Footer Developer Badge -->
+    <footer class="footer">
+      <div class="developer-badge">
+        <span class="pulse-dot"></span>
+        <span>تم البرمجة بواسطة المبرمج <strong>معاذ</strong></span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast">تم نسخ الرابط بنجاح!</div>
+
+  <script src="script.js"></script>
+</body>
+</html>
